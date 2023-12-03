@@ -1,0 +1,136 @@
+#include <Arduino.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+#include <SPI.h>
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_I2CDevice.h>
+
+void radio_print();
+
+//Radio
+void radio_read();
+#define CE_PIN 4
+#define CSN_PIN 5
+
+RF24 radio(CE_PIN, CSN_PIN);
+
+const byte address[10] = "ADDRESS03";
+
+void display_print();
+LiquidCrystal_I2C lcd(0x27,20,4);
+
+const int switch1 = 9;
+
+struct Pack{
+  float P_temprature_readout;
+  float P_humidity_readout;
+  int P_mq9_readout;
+  int P_ldr_readout;
+  int P_mq135_analog_readout;
+} packet;
+
+void setup(){
+  Serial.begin(115200);
+  radio.begin();
+  radio.setDataRate(RF24_2MBPS);
+  radio.openReadingPipe(0, address);
+  radio.setPALevel(RF24_PA_MAX);
+  radio.setChannel(2);
+  radio.startListening();
+
+  Wire.begin();
+  lcd.init();   
+  lcd.backlight();
+
+  pinMode(switch1, INPUT_PULLUP);
+}
+
+void loop(){
+  radio_read();
+  radio_print();
+  display_print();
+}
+
+void radio_read(){
+  if(radio.available()){
+    radio.read(&packet, sizeof(packet)); 
+  }
+  else{
+    //Serial.println("NOT RECEIVING TELEMETRY...");
+  }
+}
+
+void radio_print(){
+  //if(packet.P_temprature_readout > 1.00){
+    /*Serial.print(packet.P_temprature_readout);
+    Serial.print(",");
+    Serial.print(packet.P_humidity_readout);
+    Serial.print("#");
+    Serial.print(packet.P_mq9_readout);
+    Serial.print("-");
+    Serial.print(packet.P_ldr_readout);
+    Serial.print(":");
+    Serial.print(packet.P_mq135_analog_readout);
+    Serial.print("*");*/
+
+    Serial.print(packet.P_temprature_readout);
+    Serial.print(" -- ");
+    Serial.print(packet.P_humidity_readout);
+    Serial.print(" -- ");
+    Serial.print(packet.P_mq9_readout);
+    Serial.print(" -- ");
+    Serial.print(packet.P_ldr_readout);
+    Serial.print(" -- ");
+    Serial.println(packet.P_mq135_analog_readout);
+  //}
+}
+
+void display_print(){
+  if(digitalRead(switch1) == 1){
+    lcd.setCursor(0,0);
+    lcd.print("TEMP = ");
+    lcd.print(packet.P_temprature_readout);
+    lcd.print(" C");
+    
+    lcd.setCursor(0,1);
+    lcd.print("HUM = ");
+    lcd.print(packet.P_humidity_readout);
+    lcd.print(" %");
+
+    lcd.setCursor(0,2);
+    lcd.print("MQ9 = ");
+    lcd.print(packet.P_mq9_readout);
+    lcd.print(" ppm");
+
+    lcd.setCursor(0,3);
+    lcd.print("LDR = ");
+    lcd.print(packet.P_ldr_readout);
+    lcd.print(" -");
+  }
+  if(digitalRead(switch1) == 0){
+    lcd.setCursor(0,0);
+    lcd.print("HUM = ");
+    lcd.print(packet.P_humidity_readout);
+    lcd.print(" %");
+
+    lcd.setCursor(0,1);
+    lcd.print("MQ9 = ");
+    lcd.print(packet.P_mq9_readout);
+    lcd.print(" ppm");
+
+    lcd.setCursor(0,2);
+    lcd.print("LDR = ");
+    lcd.print(packet.P_ldr_readout);
+    lcd.print(" -");
+
+    lcd.setCursor(0,3);
+    lcd.print("MQ135 = ");
+    lcd.print(packet.P_mq135_analog_readout);
+    lcd.print(" ppm");
+  }
+  delay(100);
+  lcd.clear();
+}
