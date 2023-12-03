@@ -1,0 +1,73 @@
+#include <Arduino.h>
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+
+#define CE_PIN 9
+#define CSN_PIN 10
+
+RF24 radio(CE_PIN, CSN_PIN);
+const byte address[10] = "ADDRESS01";
+
+void Radio_read();
+void Processing_print();
+
+struct Pack{
+  int P_duration1;
+  int P_duration2;
+  int P_duration3;
+  int P_duration4;
+  int P_angle;
+} packet;
+
+void setup(){
+  Serial.begin(115200);
+  radio.begin();
+  radio.setDataRate(RF24_250KBPS);
+  radio.openReadingPipe(0, address);
+  radio.setPALevel(RF24_PA_MAX);
+  radio.setChannel(1);
+  radio.startListening();
+}
+
+void loop(){
+  Radio_read();
+  Processing_print();
+}
+
+void Radio_read(){
+  if(radio.available()){
+    radio.read(&packet, sizeof(packet)); 
+  }
+  else{
+    //Serial.println("NOT RECEIVING TELEMETRY...");
+  }
+}
+
+void Processing_print(){
+  /*Serial.print("Angle: ");
+  Serial.print(packet.P_angle);
+  Serial.print(" -- ");
+  Serial.print("Duration 1: ");
+  Serial.print(packet.P_duration1);
+  Serial.print(" -- ");
+  Serial.print("Duration 2: ");
+  Serial.print(packet.P_duration2);
+  Serial.print(" -- ");
+  Serial.print("Duration 3: ");
+  Serial.print(packet.P_duration3);
+  Serial.print(" -- ");
+  Serial.print("Duration 4: ");
+  Serial.println(packet.P_duration4);*/
+
+  Serial.print(packet.P_angle);
+  Serial.print(",");
+  Serial.print(packet.P_duration1);
+  Serial.print("#");
+  Serial.print(packet.P_duration2);
+  Serial.print("-");
+  Serial.print(packet.P_duration3);
+  Serial.print(":");
+  Serial.print(packet.P_duration4);
+  Serial.print(".");
+}
