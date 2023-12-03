@@ -1,0 +1,71 @@
+#include <Arduino.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+#include <SPI.h>
+
+void radio_print();
+void convert_values();
+
+//Radio
+void radio_read();
+#define CE_PIN 9
+#define CSN_PIN 10
+
+RF24 radio(CE_PIN, CSN_PIN);
+
+const byte address[10] = "ADDRESS02";
+
+struct Pack{
+  int data1;
+  int data2;
+  int data3;
+  int data4;
+} packet;
+
+int X_gyroscope;
+int Y_gyroscope;
+
+void setup(){
+  Serial.begin(115200);
+  radio.begin();
+  radio.setDataRate(RF24_250KBPS);
+  radio.openReadingPipe(0, address);
+  radio.setPALevel(RF24_PA_MIN);
+  radio.setChannel(3);
+  radio.startListening();
+}
+
+void loop(){
+  radio_read();
+  convert_values();
+  radio_print();
+}
+
+void radio_read(){
+  if(radio.available()){
+    radio.read(&packet, sizeof(packet));
+  }
+  else{
+    //Serial.println("NOT RECEIVING TELEMETRY...");
+  }
+}
+void convert_values(){
+  X_gyroscope = packet.data1;
+  Y_gyroscope = packet.data3;
+  X_gyroscope = constrain(X_gyroscope, 0, 50);
+  Y_gyroscope = constrain(Y_gyroscope, 0, 50);
+}
+void radio_print(){
+  if(X_gyroscope > 1){
+    Serial.print(X_gyroscope);
+    Serial.print(",");
+    Serial.println(Y_gyroscope);
+    /*Serial.print("#");
+    Serial.print(1);
+    Serial.print("-");
+    Serial.print(2);
+    Serial.print(":");
+    Serial.print(3);
+    Serial.print(".");*/
+  }
+}
