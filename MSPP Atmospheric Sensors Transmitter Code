@@ -1,111 +1,112 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <DHT.h>
+#include <Adafruit_Sensor.h>
 #include <nRF24L01.h>
 #include <RF24.h>
 #include <SPI.h>
-#include <Adafruit_Sensor.h>
 
 void print_readout();
 
-//Gyroscope sensor
-void read_gyro();
+//Temprature sensor
+DHT dht(3, DHT11);
+float temprature1_readout;
+float humidity_readout;
+void read_dht11();
 
-const int MPU_ADDR = 0x68;
-int16_t X_accelerometer;
-int16_t Y_accelerometer;
-int16_t Z_accelerometer;
+//Gas sensor MQ9
+const int mq9 = A1;
+int mq9_readout;
+void read_mq9();
 
-int16_t X_gyroscope;
-int16_t Y_gyroscope;
-int16_t Z_gyroscope;
+//Gas senosr MQ135
+const int mq135_analog = A0;
+int mq135_analog_readout;
+void read_mq135();
 
-int16_t temparture_readout;
-
-char tmp_str[7];
-char* convert_int16_to_str(int16_t i){
-  sprintf(tmp_str, "%6d", i);
-  return tmp_str;
-}
+//LDR sensor
+const int ldr = A2;
+int ldr_readout;
+void read_ldr();
 
 //Radio
 void radio_write();
-#define CE_PIN 4
-#define CSN_PIN 5
+#define CE_PIN 9
+#define CSN_PIN 10
 
 RF24 radio(CE_PIN, CSN_PIN);
 
-const byte address[10] = "ADDRESS02";
+const byte address[10] = "ADDRESS03";
 
 struct Pack{
-  int P_X_gyro_scaled;
-  int P_Y_gyro_scaled;
-  int check = 5;
-  int check2 = 6;
+  float P_temprature_readout;
+  float P_humidity_readout;
+  int P_mq9_readout;
+  int P_ldr_readout;
+  int P_mq135_analog_readout;
 } packet;
 
 void setup(){
   Serial.begin(115200);
+  dht.begin();
+  pinMode(mq9, INPUT);
+  pinMode(mq135_analog, INPUT);
+  pinMode(ldr, INPUT);
 
   radio.begin();
-  radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_MIN);
+  radio.setDataRate(RF24_2MBPS);
+  radio.setPALevel(RF24_PA_MAX);
   radio.openWritingPipe(address);
-  radio.setChannel(3);
+  radio.setChannel(2);
   radio.stopListening();
-
-  Wire.begin();
-  Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x6B);
-  Wire.write(0);
-  Wire.endTransmission(true);
 }
 
 void loop(){
-  read_gyro();
+  read_dht11();
+  read_mq9();
+  read_ldr();
+  read_mq135();
   print_readout();
   radio_write();
 }
 
 void print_readout(){
-  /*Serial.print(" Xg scaled = ");
-  Serial.print(packet.P_X_gyro_scaled);
+  Serial.print(" Temprature = ");
+  Serial.print(temprature1_readout);
   Serial.print(" -- ");
-  Serial.print(" Yg scaled = ");
-  Serial.print(packet.P_Y_gyro_scaled);
+  Serial.print(" Humidity = ");
+  Serial.print(humidity_readout);
   Serial.print(" -- ");
-  Serial.print(" Check = ");
-  Serial.print(packet.check);
+  Serial.print(" mq9 = ");
+  Serial.print(mq9_readout);
   Serial.print(" -- ");
-  Serial.print(" Check2 = ");
-  Serial.println(packet.check2);*/
-  Serial.print(packet.P_X_gyro_scaled);
-  Serial.print(",");
-  Serial.println(packet.P_Y_gyro_scaled);
-  Serial.print("#");
-  Serial.print(1);
-  Serial.print("-");
-  Serial.print(2);
-  Serial.print(":");
-  Serial.print(3);
-  Serial.print(".");
+  Serial.print(" ldr = ");
+  Serial.print(ldr_readout);
+  Serial.print(" -- ");
+  Serial.print(" mq135a = ");
+  Serial.println(mq135_analog_readout);
 }
 
-void read_gyro(){
-  Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x3B);
-  Wire.endTransmission(false);
-  Wire.requestFrom(MPU_ADDR, 7*2, true);
+void read_dht11(){
+  temprature1_readout = dht.readTemperature();
+  humidity_readout = dht.readHumidity();
+  packet.P_temprature_readout = temprature1_readout;
+  packet.P_humidity_readout = humidity_readout;
+}
 
-  X_gyroscope = (Wire.read()<<8 | Wire.read());
-  Y_gyroscope = (Wire.read()<<8 | Wire.read());
-  Z_gyroscope = Wire.read()<<8 | Wire.read();
-  temparture_readout = Wire.read()<<8 | Wire.read();
-  Y_accelerometer = (Wire.read()<<8 | Wire.read());
-  X_accelerometer = (Wire.read()<<8 | Wire.read());
-  Z_accelerometer = Wire.read()<<8 | Wire.read();
+void read_mq9(){
+  mq9_readout = analogRead(mq9);
+  packet.P_mq9_readout = mq9_readout;
+}
 
-  packet.P_X_gyro_scaled = map(X_gyroscope, -16000, 16700, 0, 50);
-  packet.P_Y_gyro_scaled = map(Y_gyroscope, -16400, 16700, 0, 50);
+void read_ldr(){
+  ldr_readout = analogRead(ldr);
+  packet.P_ldr_readout = ldr_readout;
+}
+
+void read_mq135(){
+  mq135_analog_readout = analogRead(mq135_analog);
+  packet.P_mq135_analog_readout = mq135_analog_readout;
 }
 
 void radio_write(){
