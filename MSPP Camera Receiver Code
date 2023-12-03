@@ -1,0 +1,75 @@
+#include <Arduino.h>
+#include <Servo.h>
+
+const int RX1 = A0;
+const int RX2 = A1;
+
+const int servo1 = 3;
+Servo output1;
+
+const int servo2 = 5;
+Servo output2;
+
+int channel1;
+int channel2;
+
+int position1;
+float smoothed1;
+float smoothed_last1;
+
+int position2;
+float smoothed2;
+float smoothed_last2;
+
+void camera_read();
+void camera_write();
+
+
+void setup(){
+  Serial.begin(115200);
+  pinMode(RX1, INPUT);
+
+  output1.writeMicroseconds(smoothed1);
+  output1.attach(servo1);
+
+  pinMode(RX2, INPUT);
+
+  output1.writeMicroseconds(smoothed2);
+  output1.attach(servo2);
+}
+
+void loop(){
+  camera_read();
+  camera_write();
+}
+
+void camera_read(){
+  channel1 = map(pulseIn(RX1, HIGH), 993, 1980, 500 ,2000);
+  channel2 = map(pulseIn(RX2, HIGH), 993, 1980, 500 ,2000);
+  channel1 = constrain(channel1, 500, 2000);
+  channel2 = constrain(channel2, 500, 2000);
+}
+
+void camera_write(){
+  position1 = channel1;
+  smoothed1 = (position1 * 0.05) + (smoothed_last1 * 0.95);
+  smoothed1 = constrain(smoothed1, 500, 2000);
+  smoothed_last1 = smoothed1;
+
+  if(smoothed1 > 1245 && smoothed1 < 1255){
+    smoothed1 = 1250;
+  }
+
+  output1.writeMicroseconds(smoothed1);
+
+  position2 = channel2;
+  smoothed2 = (position2 * 0.05) + (smoothed_last2 * 0.95);
+  smoothed2 = constrain(smoothed2, 500, 2000);
+  smoothed_last2 = smoothed2;
+
+  if(smoothed2 > 1245 && smoothed2 < 1255){
+    smoothed2 = 1250;
+  }
+
+  output2.writeMicroseconds(smoothed2);
+}
