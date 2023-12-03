@@ -1,0 +1,168 @@
+import processing.serial.*; // imports library for serial communication
+import java.awt.event.KeyEvent; // imports library for reading the data from the serial port
+import java.io.IOException;
+Serial myPort; // defines Object Serial
+
+String data = "";
+String Data_angle = "";
+String Data_distance1 = "";
+String Data_distance2 = "";
+String Data_distance3 = "";
+String Data_distance4 = "";
+
+int angle;
+int distance1;
+int distance2;
+int distance3;
+int distance4;
+float Pixel_distance1;
+float Pixel_distance2;
+float Pixel_distance3;
+float Pixel_distance4;
+String No_object;
+
+int index1;
+int index2;
+int index3;
+int index4;
+int index5;
+
+void setup(){
+  size (1280, 1024); // define screen resolution
+  smooth();
+  myPort = new Serial(this,"COM4", 115200); // starts the serial communication
+  myPort.bufferUntil('.'); // reads the data from the serial port up to the character '.'. So actually it reads this: angle,distance.
+}
+
+void draw(){ //displaying everything in a single loop
+  fill(0, 0, 0);
+  noStroke();
+  fill(0,8); 
+  rect(0, 0, width, height); 
+  fill(98, 245, 31);
+  
+  drawRadar();
+  drawLine();
+  drawObject();
+  drawText();
+}
+
+void serialEvent (Serial myPort){ //reading values and chopping them up into intergers
+  data = myPort.readStringUntil('.');
+  data = data.substring(0, data.length() - 1);
+  
+  index1 = data.indexOf(",");
+  index2 = data.indexOf("#");
+  index3 = data.indexOf("-");
+  index4 = data.indexOf(":");
+  Data_angle = data.substring(0, index1);
+  Data_distance1 = data.substring(index1 + 1, index2);
+  Data_distance2 = data.substring(index2 + 1, index3);
+  Data_distance3 = data.substring(index3 + 1, index4);
+  Data_distance4 = data.substring(index4 + 1, data.length());
+  
+  angle = int(Data_angle);
+  distance1 = int(Data_distance1);
+  distance2 = int(Data_distance2);
+  distance3 = int(Data_distance3);
+  distance4 = int(Data_distance4);
+}
+
+void drawRadar(){
+  pushMatrix();
+  translate(width / 2, height / 2); // making 0, 0 the mid point
+  noFill();
+  strokeWeight(2);
+  stroke(98, 245, 31);
+  
+  circle(0, 0, (height - height*0.0625)); // circles
+  circle(0, 0, (height - height*0.27));
+  circle(0, 0, (height - height*0.479));
+  circle(0, 0, (height - height*0.687));
+  
+  line(0,0,(-width/2)*cos(radians(0)),(-width/2)*sin(radians(0))); //angle lines
+  line(0,0,(-width/2)*cos(radians(30)),(-width/2)*sin(radians(30)));
+  line(0,0,(-width/2)*cos(radians(60)),(-width/2)*sin(radians(60)));
+  line(0,0,(-width/2)*cos(radians(90)),(-width/2)*sin(radians(90)));
+  line(0,0,(-width/2)*cos(radians(120)),(-width/2)*sin(radians(120)));
+  line(0,0,(-width/2)*cos(radians(150)),(-width/2)*sin(radians(150)));
+  line(0,0,(-width/2)*cos(radians(180)),(-width/2)*sin(radians(180)));
+  line(0,0,(-width/2)*cos(radians(210)),(-width/2)*sin(radians(210)));
+  line(0,0,(-width/2)*cos(radians(240)),(-width/2)*sin(radians(240)));
+  line(0,0,(-width/2)*cos(radians(270)),(-width/2)*sin(radians(270)));
+  line(0,0,(-width/2)*cos(radians(300)),(-width/2)*sin(radians(300)));
+  line(0,0,(-width/2)*cos(radians(330)),(-width/2)*sin(radians(330)));
+  popMatrix();
+}
+
+void drawLine(){
+  pushMatrix();
+  translate(width / 2, height / 2); // making 0, 0 the mid point
+  strokeWeight(9);
+  stroke(30, 250, 60);
+  line(0, 0, (height - height * 0.12) * cos(radians(angle)), -(height - height * 0.12) * sin(radians(angle))); // radar lines
+  line(0, 0, (height - height * 0.12) * cos(radians(angle + 90)), -(height - height * 0.12) * sin(radians(angle + 90)));
+  line(0, 0, (height - height * 0.12) * cos(radians(angle + 180)), -(height - height * 0.12) * sin(radians(angle + 180)));
+  line(0, 0, (height - height * 0.12) * cos(radians(angle + 270)), -(height - height * 0.12) * sin(radians(angle + 270)));
+  popMatrix();
+}
+
+void drawObject(){
+  pushMatrix();
+  translate(width / 2, height / 2); // making 0, 0 the mid point
+  strokeWeight(9);
+  stroke(255, 10, 10);
+  Pixel_distance1 = distance1 * ((height - height * 0.1666) * 0.025);
+  Pixel_distance2 = distance2 * ((height - height * 0.1666) * 0.025);
+  Pixel_distance3 = distance3 * ((height - height * 0.1666) * 0.025);
+  Pixel_distance4 = distance4 * ((height - height * 0.1666) * 0.025);
+  
+
+  line(Pixel_distance1 * cos(radians(angle)), -Pixel_distance1 * sin(radians(angle)), (width - width * 0.505) * cos(radians(angle)), -(width - width * 0.505) * sin(radians(angle)));
+  line(Pixel_distance2 * cos(radians(angle + 90)), -Pixel_distance2 * sin(radians(angle + 90)), (width - width * 0.505) * cos(radians(angle + 90)), -(width - width * 0.505) * sin(radians(angle + 90)));
+  line(Pixel_distance3 * cos(radians(angle + 180)), -Pixel_distance3 * sin(radians(angle + 180)), (width - width * 0.505) * cos(radians(angle + 180)), -(width - width * 0.505) * sin(radians(angle + 180)));
+  line(Pixel_distance4 * cos(radians(angle + 270)), -Pixel_distance4 * sin(radians(angle + 270)), (width - width * 0.505) * cos(radians(angle + 270)), -(width - width * 0.505) * sin(radians(angle + 270)));
+    
+  popMatrix();
+}
+  
+
+void drawText(){
+  pushMatrix();
+  
+  translate(width / 2, height / 2);
+  
+  fill(0, 0, 0);
+  noStroke();
+  rect(0, height - height * 0.0648, width, height);
+  fill(98, 245, 31);
+  textSize(25);
+  
+  text("League 1", 80, 30);
+  text("League 2", 190, 30);
+  text("League 3", 295, 30);
+  text("League 4", 405, 30);
+  
+  text("Angle: " + angle + " °", -450, 400);
+  
+  text("Distance: " + distance2 + " units", -600, -450); //linksboven
+  text("Distance: " + distance1 + " units", 450, -450); //rechtsboven
+  text("Distance: " + distance3 + " units", -600, 450); //linksonder
+  text("Distance: " + distance4 + " units", 450, 450); // rechtsonder
+  
+  textSize(25);
+  text("0°", (width/2.6)*cos(radians(0)),(-width/2.6)*sin(radians(0)));
+  text("30°", (width/2.6)*cos(radians(30)),(-width/2.6)*sin(radians(30)));
+  text("60°", (width/2.6)*cos(radians(60)),(-width/2.6)*sin(radians(60)));
+  text("90°", (width/2.6)*cos(radians(90)),(-width/2.6)*sin(radians(90)));
+  text("120°", (width/2.6)*cos(radians(120)),(-width/2.6)*sin(radians(120)));
+  text("150°", (width/2.6)*cos(radians(150)),(-width/2.6)*sin(radians(150)));
+  text("180°", (width/2.6)*cos(radians(180)),(-width/2.6)*sin(radians(180)));
+  text("210°", (width/2.6)*cos(radians(210)),(-width/2.6)*sin(radians(210)));
+  text("240°", (width/2.6)*cos(radians(240)),(-width/2.6)*sin(radians(240)));
+  text("270°", (width/2.6)*cos(radians(270)),(-width/2.6)*sin(radians(270)));
+  text("300°", (width/2.6)*cos(radians(300)),(-width/2.6)*sin(radians(300)));
+  text("330°", (width/2.6)*cos(radians(330)),(-width/2.6)*sin(radians(330)));
+  
+  popMatrix();
+}
