@@ -1,0 +1,101 @@
+#include <Arduino.h>
+#include <Servo.h>
+
+const int RX1 = A0;
+const int RX3 = A1;
+const int RX5 = A2;
+
+const int PWM1 = 11;
+const int PWM2 = 6;
+const int Enable = 12;
+
+const int servo = 3;
+Servo output;
+
+int channel1;
+int channel2;
+int channel3;
+
+int PWM_Value;
+
+int position;
+float smoothed;
+float smoothed_last;
+
+void mspp_read();
+void mspp_write();
+void mspp_print();
+
+void setup(){
+  Serial.begin(115200);
+  pinMode(RX1, INPUT);
+  pinMode(RX3, INPUT);
+  pinMode(RX5, INPUT);
+  pinMode(PWM1, OUTPUT);
+  pinMode(PWM2, OUTPUT);
+  pinMode(Enable, OUTPUT);
+
+  digitalWrite(Enable, LOW);
+  PWM_Value = 0;
+  smoothed = 1250;
+  output.writeMicroseconds(smoothed);
+  analogWrite(PWM1, PWM_Value);
+  analogWrite(PWM2, PWM_Value);
+
+  output.attach(servo);
+}
+
+void loop(){
+  digitalWrite(Enable, HIGH);
+
+  mspp_read();
+  mspp_write();
+  mspp_print();
+}
+
+void mspp_read(){
+  channel1 = map(pulseIn(RX1, HIGH), 993, 1980, 500 ,2000);
+  channel2 = map(pulseIn(RX3, HIGH), 1000, 1960, 0, 255);
+  channel1 = constrain(channel1, 500, 2000);
+  channel2 = constrain(channel2, 0, 255);
+
+  if(pulseIn(RX5, HIGH) > 1500){
+    channel3 = 0;
+  }
+  else{
+    channel3 = 1;
+  }
+}
+
+void mspp_write(){
+  PWM_Value = channel2;
+
+  if(channel3 == 0){
+    analogWrite(PWM1, PWM_Value);
+    analogWrite(PWM2, 0);
+  }
+  else if(channel3 == 1){
+    analogWrite(PWM1, 0);
+    analogWrite(PWM2, PWM_Value);
+  }
+
+  position = channel1;
+  smoothed = (position * 0.05) + (smoothed_last * 0.95);
+  smoothed = constrain(smoothed, 500, 2000);
+  smoothed_last = smoothed;
+
+  if(smoothed > 1245 && smoothed < 1255){
+    smoothed = 1250;
+  }
+
+  output.writeMicroseconds(smoothed);
+}
+
+void mspp_print(){
+  /*Serial.print(" Steering: ");
+  Serial.print(channel1);
+  Serial.print(" Throttle: ");
+  Serial.print(PWM_Value);
+  Serial.print(" Direction: ");
+  Serial.println(channel3);*/
+}
