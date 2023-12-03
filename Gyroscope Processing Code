@@ -1,0 +1,104 @@
+import processing.serial.*; // imports library for serial communication
+import java.awt.event.KeyEvent; // imports library for reading the data from the serial port
+import java.io.IOException;
+Serial myPort; // defines Object Serial
+
+String data = "";
+
+String Data_X_gyroscope;
+String Data_Y_gyroscope;
+String Data_check1;
+String Data_check2;
+String Data_check3;
+
+float X_gyroscope;
+float Y_gyroscope;
+int check1;
+int check2;
+int check3;
+
+int index1;
+int index2;
+int index3;
+int index4;
+int index5;
+
+void setup(){
+  size (1280, 1024, P3D); // define screen resolution
+  smooth();
+  myPort = new Serial(this,"COM6", 115200); // starts the serial communication
+  myPort.bufferUntil('.'); // reads the data from the serial port up to the character '.'. So actually it reads this: angle,distance.
+}
+
+void draw(){ //displaying everything in a single loop
+  fill(0, 0, 0);
+  noStroke();
+  rect(0, 0, width, height); 
+  fill(98, 245, 31);
+  drawObject();
+  drawText();
+}
+
+void serialEvent (Serial myPort){ //reading values and chopping them up into intergers
+  data = myPort.readStringUntil('.');
+  data = data.substring(0, data.length() - 1);
+  
+  index1 = data.indexOf(",");
+  index2 = data.indexOf("#");
+  index3 = data.indexOf("-");
+  index4 = data.indexOf(":");
+  
+  Data_X_gyroscope = data.substring(0, index1);
+  Data_Y_gyroscope = data.substring(index1 + 1, index2);
+  Data_check1 = data.substring(index2 + 1, index3);
+  Data_check2 = data.substring(index3 + 1, index4);
+  Data_check3 = data.substring(index4 + 1, data.length());
+  
+  X_gyroscope = (map((float(Data_X_gyroscope)), 0.00, 50.00, 1.00, 0.00) + 1) / 1;
+  Y_gyroscope = (map((float(Data_Y_gyroscope)), 0.00, 50.00, 1.00, 0.00) + 0.5) / 1;
+  print(X_gyroscope);
+  
+  if(X_gyroscope >= 1.45 && X_gyroscope <= 1.55){
+    X_gyroscope = 1.50;
+  }
+  if(Y_gyroscope >= 0.95 && Y_gyroscope <= 1.05){
+    Y_gyroscope = 1.00;
+  }
+  check1 = int(Data_check1);
+  check2 = int(Data_check2);
+  check3 = int(Data_check3);
+  
+}
+
+void drawObject(){
+  pushMatrix();
+  
+  background(100);
+  rectMode(CENTER);
+  fill(51);
+  stroke(255);
+  translate(width / 2, height / 2, 0);
+  rotateX(PI*X_gyroscope);
+  rotateY(PI*Y_gyroscope);
+  rect(0, 0, 500, 500);
+
+  
+  popMatrix();
+}
+
+void drawText(){
+  pushMatrix();
+  
+  translate(width / 2, height / 2);
+  
+  fill(0, 0, 0);
+  noStroke();
+  rect(0, height - height * 0.0648, width, height);
+  fill(98, 245, 31);
+  textSize(25);
+  
+  text("Distance: " + X_gyroscope + " units", -600, -450); //linksboven
+  text("Distance: " + Y_gyroscope + " units", 450, -450); //rechtsboven
+  
+  popMatrix();
+}
