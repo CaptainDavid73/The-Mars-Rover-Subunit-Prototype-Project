@@ -1,0 +1,114 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include <DHT.h>
+#include <Adafruit_Sensor.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+#include <SPI.h>
+
+void print_readout();
+
+//Temprature sensor
+DHT dht(3, DHT11);
+float temprature1_readout;
+float humidity_readout;
+void read_dht11();
+
+//Gas sensor MQ9
+const int mq9 = A1;
+int mq9_readout;
+void read_mq9();
+
+//Gas senosr MQ135
+const int mq135_analog = A0;
+int mq135_analog_readout;
+void read_mq135();
+
+//LDR sensor
+const int ldr = A2;
+int ldr_readout;
+void read_ldr();
+
+//Radio
+void radio_write();
+#define CE_PIN 9
+#define CSN_PIN 10
+
+RF24 radio(CE_PIN, CSN_PIN);
+
+const byte address[10] = "ADDRESS03";
+
+struct Pack{
+  float P_temprature_readout;
+  float P_humidity_readout;
+  int P_mq9_readout;
+  int P_ldr_readout;
+  int P_mq135_analog_readout;
+} packet;
+
+void setup(){
+  Serial.begin(115200);
+  dht.begin();
+  pinMode(mq9, INPUT);
+  pinMode(mq135_analog, INPUT);
+  pinMode(ldr, INPUT);
+
+  radio.begin();
+  radio.setDataRate(RF24_2MBPS);
+  radio.setPALevel(RF24_PA_MAX);
+  radio.openWritingPipe(address);
+  radio.setChannel(2);
+  radio.stopListening();
+}
+
+void loop(){
+  read_dht11();
+  read_mq9();
+  read_ldr();
+  read_mq135();
+  print_readout();
+  radio_write();
+}
+
+void print_readout(){
+  Serial.print(" Temprature = ");
+  Serial.print(temprature1_readout);
+  Serial.print(" -- ");
+  Serial.print(" Humidity = ");
+  Serial.print(humidity_readout);
+  Serial.print(" -- ");
+  Serial.print(" mq9 = ");
+  Serial.print(mq9_readout);
+  Serial.print(" -- ");
+  Serial.print(" ldr = ");
+  Serial.print(ldr_readout);
+  Serial.print(" -- ");
+  Serial.print(" mq135a = ");
+  Serial.println(mq135_analog_readout);
+}
+
+void read_dht11(){
+  temprature1_readout = dht.readTemperature();
+  humidity_readout = dht.readHumidity();
+  packet.P_temprature_readout = temprature1_readout;
+  packet.P_humidity_readout = humidity_readout;
+}
+
+void read_mq9(){
+  mq9_readout = analogRead(mq9);
+  packet.P_mq9_readout = mq9_readout;
+}
+
+void read_ldr(){
+  ldr_readout = analogRead(ldr);
+  packet.P_ldr_readout = ldr_readout;
+}
+
+void read_mq135(){
+  mq135_analog_readout = analogRead(mq135_analog);
+  packet.P_mq135_analog_readout = mq135_analog_readout;
+}
+
+void radio_write(){
+  radio.write(&packet, sizeof(packet));
+}
