@@ -1,0 +1,183 @@
+#include <Arduino.h>
+#include <Servo.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+
+const int trigger1 = A0;
+const int trigger2 = 6;
+const int trigger3 = 9;
+const int trigger4 = 10;
+
+const int echo1 = 2;
+const int echo2 = A1;
+const int echo3 = A2;
+const int echo4 = A3;
+
+int duration;
+int duration1;
+int duration2;
+int duration3;
+int duration4;
+
+int angle;
+
+#define CE_PIN  4
+#define CSN_PIN 5
+
+RF24 radio(CE_PIN, CSN_PIN);
+const byte address[10] = "ADDRESS01";
+
+struct Pack{
+  int P_duration1;
+  int P_duration2;
+  int P_duration3;
+  int P_duration4;
+  int P_angle;
+} packet;
+
+Servo servo;
+
+void sweep();
+void sonar(int trigger, int echo);
+
+void setup(){
+  Serial.begin(115200);
+  radio.begin();
+  radio.setDataRate(RF24_250KBPS);
+  radio.setPALevel(RF24_PA_MIN);
+  radio.openWritingPipe(address);
+  radio.setChannel(1);
+  radio.stopListening();
+
+  servo.attach(3);
+
+  pinMode(trigger1, OUTPUT);
+  pinMode(trigger2, OUTPUT);
+  pinMode(trigger3, OUTPUT);
+  pinMode(trigger4, OUTPUT);
+
+  pinMode(echo1, INPUT);
+  pinMode(echo2, INPUT);
+  pinMode(echo3, INPUT);
+  pinMode(echo4, INPUT);
+}
+
+void loop(){
+  sweep();
+}
+
+void sonar(int trigger, int echo){
+  digitalWrite(trigger, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigger, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigger, LOW);
+
+  duration = map(pulseIn(echo, HIGH), 0, 5000, 0, 30);
+}
+
+void sweep(){
+  for(int angle = 0; angle <= 90; angle++){
+    servo.write(angle);
+    
+    sonar(trigger1, echo1);
+    duration1 = duration;
+
+  
+    sonar(trigger2, echo2);
+    duration2 = duration;
+
+  
+    sonar(trigger3, echo3);
+    duration3 = duration;
+
+  
+    sonar(trigger4, echo4);
+    duration4 = duration;
+
+    packet.P_angle = angle;
+    packet.P_duration1 = duration1;
+    packet.P_duration2 = duration2;
+    packet.P_duration3 = duration3;
+    packet.P_duration4 = duration4;
+
+    /*Serial.print("Angle: ");
+    Serial.print(packet.P_angle);
+    Serial.print(" -- ");
+    Serial.print("Duration 1: ");
+    Serial.print(packet.P_duration1);
+    Serial.print(" -- ");
+    Serial.print("Duration 2: ");
+    Serial.print(packet.P_duration2);
+    Serial.print(" -- ");
+    Serial.print("Duration 3: ");
+    Serial.print(packet.P_duration3);
+    Serial.print(" -- ");
+    Serial.print("Duration 4: ");
+    Serial.println(packet.P_duration4);*/
+    Serial.print(packet.P_angle);
+    Serial.print(",");
+    Serial.print(packet.P_duration1);
+    Serial.print("#");
+    Serial.print(packet.P_duration2);
+    Serial.print("-");
+    Serial.print(packet.P_duration3);
+    Serial.print(":");
+    Serial.print(packet.P_duration4);
+    Serial.print(".");
+
+    radio.write(&packet, sizeof(packet));
+  }
+
+  for(int angle = 90; angle > 0; angle--){
+    servo.write(angle);
+    
+    sonar(trigger1, echo1);
+    duration1 = duration;
+  
+    sonar(trigger2, echo2);
+    duration2 = duration;
+  
+    sonar(trigger3, echo3);
+    duration3 = duration;
+
+  
+    sonar(trigger4, echo4);
+    duration4 = duration;
+
+    packet.P_angle = angle;
+    packet.P_duration1 = duration1;
+    packet.P_duration2 = duration2;
+    packet.P_duration3 = duration3;
+    packet.P_duration4 = duration4;
+
+    /*Serial.print("Angle: ");
+    Serial.print(packet.P_angle);
+    Serial.print(" -- ");
+    Serial.print("Duration 1: ");
+    Serial.print(packet.P_duration1);
+    Serial.print(" -- ");
+    Serial.print("Duration 2: ");
+    Serial.print(packet.P_duration2);
+    Serial.print(" -- ");
+    Serial.print("Duration 3: ");
+    Serial.print(packet.P_duration3);
+    Serial.print(" -- ");
+    Serial.print("Duration 4: ");
+    Serial.println(packet.P_duration4);*/
+    Serial.print(packet.P_angle);
+    Serial.print(",");
+    Serial.print(packet.P_duration1);
+    Serial.print("#");
+    Serial.print(packet.P_duration2);
+    Serial.print("-");
+    Serial.print(packet.P_duration3);
+    Serial.print(":");
+    Serial.print(packet.P_duration4);
+    Serial.print(".");
+
+    radio.write(&packet, sizeof(packet));
+  }
+}
